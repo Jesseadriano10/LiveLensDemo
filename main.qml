@@ -11,6 +11,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
+
 ApplicationWindow {
     visible: true
     width: 1920
@@ -51,9 +52,9 @@ ApplicationWindow {
         Image {
             id: inputImg
             anchors.fill: parent
-            source: "" // Source will be set dynamically when user selects an image
+            source: "None" // Source will be set dynamically when user selects an image
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
-            visible: inputImage.source !== "" // Hide the image if no source is set
+            visible: inputImage.source == "None" // Hide the image if no source is set
         }
 
         Text {
@@ -85,6 +86,26 @@ ApplicationWindow {
         }
 
     }
+    FileDialog {
+        id: fileDialog
+        title: "Select an image"
+        currentFolder: StandardPaths.standardLocations(StandardPaths.PicturesLocation)[0]
+        nameFilters: ["Image files (*.jpg *.png)"]
+        onAccepted: {
+            // Call the backend to process the image
+            backend.load_image(fileDialog.fileUrl)
+            // Should receive a signal from the backend to update the input image
+        }
+    }
+
+    Connection {
+        target: backend
+        onImageLoaded: {
+            // Set the source of the input image after the image is processed
+            console.log("Image Loaded: ", image_path)
+            inputImage.source = backend.image_path
+        }
+    }
     Rectangle {
         id: outputImgPlaceholder
         width: parent.width * 0.3
@@ -109,9 +130,9 @@ ApplicationWindow {
         Image {
             id: outputImg
             anchors.fill: parent
-            source: "" // Source will be set dynamically backend return
+            source: "None" // Source will be set dynamically backend return
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
-            visible: outputImage.source !== "" // Hide the image if no source is set
+            visible: outputImage.source != "None" // Hide the image if no source is set
         }
 
         Text {

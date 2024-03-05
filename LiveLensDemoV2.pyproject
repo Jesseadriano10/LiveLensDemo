@@ -2,6 +2,7 @@
     "files": [
         ".gitignore",
         "BackDrop.png",
+        "SegmentationModel.py",
         "YOLO_object_segmentation.ipynb",
         "main.py",
         "main.qml"

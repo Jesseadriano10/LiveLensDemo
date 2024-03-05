@@ -2,10 +2,19 @@
 import sys
 from pathlib import Path
 
+# Import the required libraries for QT and PySide6
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal
 from typing import List, Dict
+# Model imports
+import os
+import numpy as np
+from ultralytics import YOLO
+import cv2
+
+import matplotlib.pyplot as plt
+from SegmentationModel import SegmentationModel
 
 
 class Backend(QObject):
@@ -15,8 +24,12 @@ class Backend(QObject):
         self.actual_weight = ""
         self.segmented: Dict[str, str] = {}
         self.predicted_weight: int = 0
-        # Image is numpy array
-        self.image = None
+        # self.SegmentationModel = SegmentationModel("yolov8m-seg.pt")
+        self.input_image = None
+        self.processed_image = None # For intermediate steps
+        self.imageLoaded = Signal(str) # Signal to notify the QML when the image is loaded
+
+
     @Slot(int)
     def next_step(self):
         # Manage the state and call the appropriate function
@@ -38,8 +51,13 @@ class Backend(QObject):
             self.display_results()
         self.current_step += 1
 
-    def load_image(self):
-        pass
+    def load_image(self, image_path: str):
+        self.image_path = image_path
+        # Load the image as numpy array array
+        self.input_image = cv2.imread(image_path)
+        # Emit the signal to notify the QML that the image is loaded
+        self.imageLoaded.emit(image_path)
+        
     def fix_distortion(self):
         pass
     def segment(self):
