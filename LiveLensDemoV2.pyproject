@@ -1,0 +1,9 @@
+{
+    "files": [
+        ".gitignore",
+        "BackDrop.png",
+        "YOLO_object_segmentation.ipynb",
+        "main.py",
+        "main.qml"
+    ]
+}
