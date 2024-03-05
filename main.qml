@@ -52,9 +52,9 @@ ApplicationWindow {
         Image {
             id: inputImg
             anchors.fill: parent
-            source: "None" // Source will be set dynamically when user selects an image
+            source: "" // Source will be set dynamically when user selects an image
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
-            visible: inputImage.source == "None" // Hide the image if no source is set
+            visible: inputImage.source !== "" // Hide the image if no source is set
         }
 
         Text {
@@ -81,8 +81,7 @@ ApplicationWindow {
         font.pointSize: 24
         
         onClicked: {
-            // inputImage.source = ""
-            // inputImage.source = fileDialog.open()
+            fileDialog.open()
         }
 
     }
@@ -98,12 +97,12 @@ ApplicationWindow {
         }
     }
 
-    Connection {
+    Connections {
         target: backend
         onImageLoaded: {
             // Set the source of the input image after the image is processed
             console.log("Image Loaded: ", image_path)
-            inputImage.source = backend.image_path
+            inputImage.source = image_path
         }
     }
     Rectangle {
@@ -130,9 +129,9 @@ ApplicationWindow {
         Image {
             id: outputImg
             anchors.fill: parent
-            source: "None" // Source will be set dynamically backend return
+            source: "" // Source will be set dynamically backend return
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
-            visible: outputImage.source != "None" // Hide the image if no source is set
+            visible: outputImage.source !== "" // Hide the image if no source is set
         }
 
         Text {
@@ -142,6 +141,8 @@ ApplicationWindow {
             text: "Output Image"
             textFormat: Text.MarkdownText
             font.family: "Verdana"
+            font.styleName: "Regular"
+            visible: outputImage.source === "" // Hide the text if an image is set
         }
     }
     Button {

@@ -3,8 +3,6 @@ import numpy as np
 from ultralytics import YOLO
 import cv2
 
-import matplotlib.pyplot as plt
-
 class SegmentationModel:
     def __init__(self, model_path):
         self.model = YOLO(model_path)

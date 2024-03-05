@@ -18,16 +18,17 @@ from SegmentationModel import SegmentationModel
 
 
 class Backend(QObject):
+    imageLoaded = Signal(str) # Signal to notify the QML when the image is loaded
     def __init__(self):
         super(Backend, self).__init__()
         self.current_step: int = 0
         self.actual_weight = ""
         self.segmented: Dict[str, str] = {}
         self.predicted_weight: int = 0
-        # self.SegmentationModel = SegmentationModel("yolov8m-seg.pt")
+        self.SegmentationModel = SegmentationModel("yolov8m-seg.pt")
         self.input_image = None
         self.processed_image = None # For intermediate steps
-        self.imageLoaded = Signal(str) # Signal to notify the QML when the image is loaded
+
 
 
     @Slot(int)
@@ -50,13 +51,24 @@ class Backend(QObject):
         elif self.current_step == 7:
             self.display_results()
         self.current_step += 1
-
+        
+    @Slot(str)
     def load_image(self, image_path: str):
+    # Convert to a standard file path if it starts with '/' (Unix-like systems)
+        if image_path.startswith('/'):
+            image_path = image_path[1:]
         self.image_path = image_path
-        # Load the image as numpy array array
-        self.input_image = cv2.imread(image_path)
-        # Emit the signal to notify the QML that the image is loaded
-        self.imageLoaded.emit(image_path)
+        # Ensure path debugging
+        print(f"Attempting to load image from path: {self.image_path}")
+        try:
+            self.input_image = cv2.imread(self.image_path)
+            if self.input_image is None:
+                print(f"Failed to load image at {self.image_path}")
+            else:
+                # Emit the signal with a correct path or indication of success
+                self.imageLoaded.emit(self.image_path)
+        except Exception as e:
+            print(f"Error loading image: {e}")
         
     def fix_distortion(self):
         pass
