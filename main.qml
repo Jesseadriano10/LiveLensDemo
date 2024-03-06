@@ -20,6 +20,9 @@ ApplicationWindow {
     Material.accent: Material.DeepOrange
     color: Material.backgroundColor
     title: "LiveLens Demo"
+    flags: QT.FramelessWindowHint | Qt.Window
+    
+
 
     Image {
         id: backDrop
@@ -30,7 +33,7 @@ ApplicationWindow {
     }
     Rectangle {
         id: inputImgPlaceholder
-        width: parent.width * 0.3
+        width: parent.width * 0.365
         height: parent.height * 0.5
         x: parent.width * 0.07
         y: parent.height * 0.1
@@ -52,9 +55,30 @@ ApplicationWindow {
         Image {
             id: inputImg
             anchors.fill: parent
+            anchors.margins: 8
+
             source: "" // Source will be set dynamically when user selects an image
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
-            visible: inputImage.source !== "" // Hide the image if no source is set
+            visible: inputImg.source != ""
+
+            onStatusChanged: {
+                if (inputImg.status === Image.Ready) {
+                    // Automatically scale placeholder to fit the image
+                    var imgRatio = inputImg.width / inputImg.height;
+                    var placeholderMaxWidth = inputImgPlaceholder.width;
+                    var placeholderMaxHeight = inputImgPlaceholder.height;
+
+                    // Scale the image to fit the placeholder
+                    if (imgRatio > 1) {
+                        inputImg.width = placeholderMaxWidth;
+                        inputImg.height = placeholderMaxWidth / imgRatio;
+                    } else {
+                        inputImg.height = placeholderMaxHeight;
+                        inputImg.width = placeholderMaxHeight * imgRatio;
+                    }            
+                }
+            }
+        
         }
 
         Text {
@@ -65,13 +89,13 @@ ApplicationWindow {
             font.pointSize: 24
             anchors.centerIn: parent
             color: "white"
-            visible: inputImage.source === "" // Hide the text if an image is set
+            visible: inputImg.source == "" // Hide the text if an image is set
         }
     }
     Button {
         id: selectImageButton
         text: "Select Image"
-        anchors.right: inputImgPlaceholder.right
+        anchors.horizontalCenter: inputImgPlaceholder.horizontalCenter
         anchors.top: inputImgPlaceholder.bottom
         anchors.topMargin: 20
         width: parent.width * 0.3
@@ -79,11 +103,10 @@ ApplicationWindow {
         Material.background: Material.primary
         // Make text bigger
         font.pointSize: 24
-        
+
         onClicked: {
             fileDialog.open()
         }
-
     }
     FileDialog {
         id: fileDialog
@@ -92,22 +115,19 @@ ApplicationWindow {
         nameFilters: ["Image files (*.jpg *.png)"]
         onAccepted: {
             // Call the backend to process the image
-            backend.load_image(fileDialog.fileUrl)
+            var localPath = selectedFile.toString().replace("file:///", "")
             // Should receive a signal from the backend to update the input image
+            console.log("Calling backend to process image")
+            backend.load_image(localPath)
+            // Catch the connection from the backend!!!!
         }
     }
 
-    Connections {
-        target: backend
-        onImageLoaded: {
-            // Set the source of the input image after the image is processed
-            console.log("Image Loaded: ", image_path)
-            inputImage.source = image_path
-        }
-    }
+
+
     Rectangle {
         id: outputImgPlaceholder
-        width: parent.width * 0.3
+        width: parent.width * 0.365
         height: parent.height * 0.5
         x: parent.width * 0.56
         y: parent.height * 0.1
@@ -131,7 +151,7 @@ ApplicationWindow {
             anchors.fill: parent
             source: "" // Source will be set dynamically backend return
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
-            visible: outputImage.source !== "" // Hide the image if no source is set
+            visible: outputImg.source !== "" // Hide the image if no source is set
         }
 
         Text {
@@ -142,13 +162,13 @@ ApplicationWindow {
             textFormat: Text.MarkdownText
             font.family: "Verdana"
             font.styleName: "Regular"
-            visible: outputImage.source === "" // Hide the text if an image is set
+            visible: outputImg.source == "" // Hide the text if an image is set
         }
     }
     Button {
         id: nextButton
         text: "Next"
-        anchors.right: outputImgPlaceholder.right
+        anchors.horizontalCenter: outputImgPlaceholder.horizontalCenter
         anchors.top: outputImgPlaceholder.bottom
         anchors.topMargin: 20
         width: parent.width * 0.3
@@ -156,10 +176,17 @@ ApplicationWindow {
         Material.background: Material.primary
         // Make text bigger
         font.pointSize: 24
-        
-        onClicked: {
-            
-        }
-}
 
+        onClicked: {
+
+        }
+    }
+    
+    Connections {
+        target: backend
+        onImageLoaded: function(imagePath) {
+            console.log("Image loaded from backend: " + imagePath);
+            inputImg.source = imagePath.startsWith("file:///") ? imagePath : "file:///" + imagePath;        
+        }
+    }
 }

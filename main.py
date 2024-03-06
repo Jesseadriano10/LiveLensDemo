@@ -18,7 +18,7 @@ from SegmentationModel import SegmentationModel
 
 
 class Backend(QObject):
-    imageLoaded = Signal(str) # Signal to notify the QML when the image is loaded
+    imageLoaded = Signal(str)
     def __init__(self):
         super(Backend, self).__init__()
         self.current_step: int = 0
@@ -29,62 +29,27 @@ class Backend(QObject):
         self.input_image = None
         self.processed_image = None # For intermediate steps
 
-
-
-    @Slot(int)
-    def next_step(self):
-        # Manage the state and call the appropriate function
-        if self.current_step == 0:
-            self.load_image()
-        elif self.current_step == 1:
-            self.fix_distortion()
-        elif self.current_step == 2:
-            self.segment()
-        elif self.current_step == 3:
-            self.showBinaryMask()
-        elif self.current_step == 4:
-            self.showFiltered()
-        elif self.current_step == 5:
-            self.showBounding()
-        elif self.current_step == 6:
-            self.predict()
-        elif self.current_step == 7:
-            self.display_results()
-        self.current_step += 1
         
     @Slot(str)
-    def load_image(self, image_path: str):
-    # Convert to a standard file path if it starts with '/' (Unix-like systems)
-        if image_path.startswith('/'):
-            image_path = image_path[1:]
-        self.image_path = image_path
+    def load_image(self, input_image_path: str):
+        if input_image_path.startswith("file:///"):
+            input_image_path = input_image_path[8:]
+        self.input_image_path = Path(input_image_path)
         # Ensure path debugging
-        print(f"Attempting to load image from path: {self.image_path}")
+        print(f"Attempting to load image from path: {self.input_image_path}")
         try:
-            self.input_image = cv2.imread(self.image_path)
+            self.input_image = cv2.imread(str(self.input_image_path))
             if self.input_image is None:
-                print(f"Failed to load image at {self.image_path}")
+                print(f"Failed to load image at {self.input_image_path}")
             else:
                 # Emit the signal with a correct path or indication of success
-                self.imageLoaded.emit(self.image_path)
+                print(f"Attempting to emit signal with path: {self.input_image_path}")
+                self.imageLoaded.emit(str(self.input_image_path))
+                print(f"Image loaded and sent successfully from {self.input_image_path}")
         except Exception as e:
             print(f"Error loading image: {e}")
         
-    def fix_distortion(self):
-        pass
-    def segment(self):
-        pass
-    def showBinaryMask(self):
-        pass
-    def showFiltered(self):
-        pass
-    def showBounding(self):
-        pass
-    def predict(self):
-        pass
-    def display_results(self):
-        pass
-    
+
 
 if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
@@ -95,12 +60,16 @@ if __name__ == "__main__":
     # Create backend object and expose it to QML
     backend = Backend()
     engine.rootContext().setContextProperty("backend", backend)
+    
+   
+    
 
 
     # Load the main QML file
     qml_file = Path(__file__).resolve().parent / "main.qml"
     engine.load(qml_file)
     if not engine.rootObjects():
+        sys.stdout.write("Failed to load QML file")
         sys.exit(-1)
 
     sys.exit(app.exec())
