@@ -1,9 +1,8 @@
 import numpy as np
 import cv2 as cv
-from google.colab.patches import cv2_imshow
 from numpy import asarray
 from PIL import Image
-from google.colab.patches import cv2_imshow
+import glob 
 
 """
 # Usage
@@ -29,10 +28,13 @@ class DistortionCorrection:
         self.mtx = None
         self.dist = None
     
+    """
+        Not used in demo. We run it before the demo to get the calibration parameters
+    """
     def calibration_parameters(self, input_images):
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         objp = np.zeros((self.chessboard_edges[0]*self.chessboard_edges[1],3), np.float32)
-        ojbp[:,:2] = np.mgrid[0:self.chessboard_edges[0], 0:self.chessboard_edges[1]].T.reshape(-1,2)
+        objp[:,:2] = np.mgrid[0:self.chessboard_edges[0], 0:self.chessboard_edges[1]].T.reshape(-1,2)
         objpoints = []
         imgpoints = []
         
@@ -44,8 +46,10 @@ class DistortionCorrection:
                 corners2 = cv.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
                 imgpoints.append(corners2)
         
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+        ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
         self.mtx, self.dist = mtx, dist
+        np.savetxt('mtx.csv', mtx, delimiter=',')
+        np.savetxt('dist.csv', dist, delimiter=',')
         return mtx, dist
     """
         distortion_correction takes an input image and remaps the pixels based on the distortion parameters   
@@ -73,3 +77,26 @@ class DistortionCorrection:
             if img is not None:
                 images.append(img)
         return images
+    
+if __name__ == "__main__":
+    image_dir = "Open_CV_Files"  # Replace with your images directory
+    # grabs all da files, glob style  ;)
+    # Jank but works, "Files" is not the shared "Files" folder on the drive but a shortcut in my personal drive to the shared capstone Files folder
+    image_paths = glob.glob(f'{image_dir}/*.JPG')
+    image_list = []
+    for path in image_paths:
+        img = cv.imread(path)
+        img = np.array(img)
+        image_list.append(img)
+    print(image_list[0].size)
+    images = image_list
+    calibrator = DistortionCorrection(chessboardEdges=(9, 6), image_dimensions=(16, 9))
+    mtx, dist = calibrator.calibration_parameters(images)
+    test_image = cv.imread(image_paths[0])
+    corrected_img, cropped_img = calibrator.distortion_correction(test_image)
+    cv.imshow('Corrected Image', corrected_img)
+    cv.imshow('Cropped Image', cropped_img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+        

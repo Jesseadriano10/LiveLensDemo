@@ -2,9 +2,14 @@
     "files": [
         ".gitignore",
         "BackDrop.png",
+        "CowWeightPredictor.py",
+        "DistortionCorrection.py",
+        "SegmentationModel.py",
         "SegmentationModel.py",
         "YOLO_object_segmentation.ipynb",
+        "dist.csv",
         "main.py",
-        "main.qml"
+        "main.qml",
+        "mtx.csv"
     ]
 }

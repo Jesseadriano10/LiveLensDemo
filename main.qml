@@ -118,8 +118,9 @@ ApplicationWindow {
             var localPath = selectedFile.toString().replace("file:///", "")
             // Should receive a signal from the backend to update the input image
             console.log("Calling backend to process image")
-            backend.load_image(localPath)
-            // Catch the connection from the backend!!!!
+            backend.load_image(localPath) // Move to next state
+            backend.next_step() // move from INITIAL to IMAGE_LOADED
+            
         }
     }
 
@@ -178,13 +179,15 @@ ApplicationWindow {
         font.pointSize: 24
 
         onClicked: {
-
+            // Call the backend to update the state to show a 
+            // different part of the demo
+            // backend.next_stage()
         }
     }
     
     Connections {
         target: backend
-        onImageLoaded: function(imagePath) {
+        function onImageLoaded(imagePath) {
             console.log("Image loaded from backend: " + imagePath);
             inputImg.source = imagePath.startsWith("file:///") ? imagePath : "file:///" + imagePath;        
         }
