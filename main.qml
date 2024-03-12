@@ -11,7 +11,6 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
-
 ApplicationWindow {
     visible: true
     width: 1920
@@ -20,7 +19,7 @@ ApplicationWindow {
     Material.accent: Material.DeepOrange
     color: Material.backgroundColor
     title: "LiveLens Demo"
-    flags: QT.FramelessWindowHint | Qt.Window
+    // flags: QT.FramelessWindowHint | Qt.Window
     
 
 
@@ -78,7 +77,6 @@ ApplicationWindow {
                     }            
                 }
             }
-        
         }
 
         Text {
@@ -150,7 +148,7 @@ ApplicationWindow {
         Image {
             id: outputImg
             anchors.fill: parent
-            source: "" // Source will be set dynamically backend return
+            // source: backend.getImage()
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
             visible: outputImg.source !== "" // Hide the image if no source is set
         }
@@ -166,6 +164,7 @@ ApplicationWindow {
             visible: outputImg.source == "" // Hide the text if an image is set
         }
     }
+    
     Button {
         id: nextButton
         text: "Next"
@@ -182,6 +181,7 @@ ApplicationWindow {
             // Call the backend to update the state to show a 
             // different part of the demo
             // backend.next_stage()
+            backend.next_step()
         }
     }
     
@@ -190,6 +190,12 @@ ApplicationWindow {
         function onImageLoaded(imagePath) {
             console.log("Image loaded from backend: " + imagePath);
             inputImg.source = imagePath.startsWith("file:///") ? imagePath : "file:///" + imagePath;        
+        }
+
+        // event handler for signal imageProcessed from backend
+        function onImageProcessed(byteArray) {
+            console.log("Image updated to newest processed_image")
+            outputImg.source = byteArray
         }
     }
 }

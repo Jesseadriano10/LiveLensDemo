@@ -8,6 +8,7 @@ from PySide6.QtGui import QGuiApplication, QImage, QPixmap
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, Qt
 from PySide6.QtQuick import QQuickImageProvider
+from PySide6.QtCore import QByteArray
 
 from typing import List, Dict
 # Model imports
@@ -34,6 +35,7 @@ class State(Enum):
     PREDICTION_MADE = auto()
     COMPARISON_DISPLAYED = auto()
 
+""""
 class ImageProvider(QQuickImageProvider):
     def __init__(self):
        super().__init__(QQuickImageProvider.Image)
@@ -54,15 +56,28 @@ class ImageProvider(QQuickImageProvider):
     def addImage(self, id, image):
         # Add images to provider
         self.myImageMap[id] = image
-            
-                
+"""
 
+class ImageProvider(QObject):
+    imageChanged = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.image = []
+
+    def get_image(self):
+        return self.image
+    
+    def set_image(self, image):
+        self.image = image
+        self.imageChanged.emit()
+    
 
 class Backend(QObject):
     # Signal for image loaded
     imageLoaded = Signal(str)
     # Signal for image processed
-    imageProcessed = Signal(QImage)
+    imageProcessed = Signal(QByteArray)
     
     def __init__(self):
         super(Backend, self).__init__()
@@ -78,24 +93,23 @@ class Backend(QObject):
     @Slot()
     def next_step(self):
         if self.state == State.INITIAL:
+            print('State.INITIAL')
             # QML logic will call load_image so we don't need to do anything here
             self.state = State.IMAGE_LOADED
         elif self.state == State.IMAGE_LOADED:
+            print('State.IMAGE_LOADED')
             # Apply distortion correction
             isPrepared = self.prepare_calibration()
             if isPrepared:
-                self.processed_image = self.DistortionCorrection.distortion_correction(self.input_image)
-                self.processed_image = cv.cvtColor(self.processed_image, cv.COLOR_BGR2RGB)
+                self.processed_image = self.input_image
+                #self.processed_image = self.DistortionCorrection.distortion_correction(self.input_image)
+                #self.processed_image = cv.cvtColor(self.processed_image, cv.COLOR_BGR2RGB)
             else:
                 print("Failed to prepare calibration")
-            # Use QPixMap to display our numpy array
-            height, width, channel = self.processed_image.shape
-            bytesPerLine = 3 * width
-            qImg = QImage(self.processed_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
-            # Emit the signal with the processed image
-            self.imageProcessed.emit(qImg)
+            
             self.state = State.DISTORTION_CORRECTION_ONE
         elif self.state == State.DISTORTION_CORRECTION_ONE:
+            print('State.DISTORTION_CORRECTION_ONE')
             # Move to Distortion Correction Two
             self.state = State.DISTORTION_CORRECTION_TWO
         elif self.state == State.DISTORTION_CORRECTION_TWO:
@@ -123,23 +137,23 @@ class Backend(QObject):
         except Exception as e:
             return False
             # Handle the error appropriately
-        
-                
-        
+
+
+    # initial loading of image
     @Slot(str)
     def load_image(self, input_image_path: str):
         if input_image_path.startswith("file:///"):
             input_image_path = input_image_path[8:]
         self.input_image_path = Path(input_image_path)
         # Ensure path debugging
-        print(f"Attempting to load image from path: {self.input_image_path}")
+        # print(f"Attempting to load image from path: {self.input_image_path}")
         try:
             self.input_image = cv.imread(str(self.input_image_path))
             if self.input_image is None:
                 print(f"Failed to load image at {self.input_image_path}")
             else:
                 # Emit the signal with a correct path or indication of success
-                print(f"Attempting to emit signal with path: {self.input_image_path}")
+                # print(f"Attempting to emit signal with path: {self.input_image_path}")
                 self.imageLoaded.emit(str(self.input_image_path))
                 print(f"Image loaded and sent successfully from {self.input_image_path}")
         except Exception as e:
@@ -147,7 +161,17 @@ class Backend(QObject):
     
     def convertKgToLbs(self, weight: float) -> float:
         return weight * 2.20462
-        
+    
+    @Slot(result='QByteArray')
+    def getImage(self):
+        if self.state != State.INITIAL:
+            # Use QPixMap to display our numpy array
+            #height, width = self.processed_image.shape
+            #qimg = QImage(self.processed_image.data, width, height, QImage.Format_RGB888)
+            # = QPixmap.fromImage(qimg)
+            qbytearray = QByteArray.fromRawData(self.processed_image.tobytes())
+            self.imageProcessed.emit(qbytearray)
+
 
 
 if __name__ == "__main__":
