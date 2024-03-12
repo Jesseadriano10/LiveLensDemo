@@ -20,7 +20,7 @@ ApplicationWindow {
     Material.accent: Material.DeepOrange
     color: Material.backgroundColor
     title: "LiveLens Demo"
-    flags: QT.FramelessWindowHint | Qt.Window
+
     
 
 
@@ -75,10 +75,10 @@ ApplicationWindow {
                     } else {
                         inputImg.height = placeholderMaxHeight;
                         inputImg.width = placeholderMaxHeight * imgRatio;
-                    }            
+                    }
                 }
             }
-        
+
         }
 
         Text {
@@ -120,7 +120,8 @@ ApplicationWindow {
             console.log("Calling backend to process image")
             backend.load_image(localPath) // Move to next state
             backend.next_step() // move from INITIAL to IMAGE_LOADED
-            
+            // Disable the button to prevent multiple calls
+            selectImageButton.enabled = false
         }
     }
 
@@ -128,9 +129,9 @@ ApplicationWindow {
 
     Rectangle {
         id: outputImgPlaceholder
-        width: parent.width * 0.365
-        height: parent.height * 0.5
-        x: parent.width * 0.56
+        width: parent.width * 0.363
+        height: parent.height * 0.495
+        x: parent.width * 0.50
         y: parent.height * 0.1
         border.color: Material.primary
         border.width: 8
@@ -146,13 +147,32 @@ ApplicationWindow {
             samples: 17
             color: "#80000000"
         }
-        
+
         Image {
             id: outputImg
             anchors.fill: parent
-            source: "" // Source will be set dynamically backend return
+            // Use 'imageprovider' as source and append the imageId received
+            // from the signal
+            anchors.margins: 8
             fillMode: Image.PreserveAspectFit // Preserve Aspect Ratio
             visible: outputImg.source !== "" // Hide the image if no source is set
+            onStatusChanged: {
+                if (outputImg.status === Image.Ready) {
+                    // Automatically scale placeholder to fit the image
+                    var imgRatio = outputImg.width / outputImg.height;
+                    var placeholderMaxWidth = outputImgPlaceholder.width;
+                    var placeholderMaxHeight = outputImgPlaceholder.height;
+
+                    // Scale the image to fit the placeholder
+                    if (imgRatio > 1) {
+                        outputImg.width = placeholderMaxWidth;
+                        outputImg.height = placeholderMaxWidth / imgRatio;
+                    } else {
+                        outputImg.height = placeholderMaxHeight;
+                        outputImg.width = placeholderMaxHeight * imgRatio;
+                    }
+                }
+            }
         }
 
         Text {
@@ -179,17 +199,99 @@ ApplicationWindow {
         font.pointSize: 24
 
         onClicked: {
-            // Call the backend to update the state to show a 
+            // Disable the button with timer to prevent fast clicks
+            nextButton.enabled = false
+            buttonTimer.start()
+            // Call the backend to update the state to show a
             // different part of the demo
-            // backend.next_stage()
+            backend.next_step()
         }
     }
     
+    // Weight prediction text to only be displayed after weight prediction
+    Text {
+        id: weightPrediction
+        font.pointSize: 24
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: nextButton.bottom
+        anchors.topMargin: 20
+        color: "white"
+        visible: false
+        // Idle animation for text
+        NumberAnimation on opacity {
+            running: true
+            loops: Animation.Infinite
+            from: 0.0
+            to: 1.0
+            duration: 2000
+        }
+    }
+    // State text to only be displayed after state change
+    Text {
+        id: stateText
+        font.pointSize: 24
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 20
+        color: "white"
+        visible: false
+        // Idle animation for text
+        NumberAnimation on opacity {
+            running: true
+            loops: Animation.Infinite
+            from: 0.0
+            to: 1.0
+            duration: 2000 // Increase the duration to make the fade slower
+        }
+    }
+
     Connections {
         target: backend
         function onImageLoaded(imagePath) {
             console.log("Image loaded from backend: " + imagePath);
-            inputImg.source = imagePath.startsWith("file:///") ? imagePath : "file:///" + imagePath;        
+            inputImg.source = imagePath.startsWith("file:///") ? imagePath : "file:///" + imagePath;
+        }
+        // This function is called when the backend has processed the image
+        // and stored it in a map within backend
+        function onImageProcessed(imageId) {
+            if (imageId !== "dummy") {
+                console.log("Image processed from backend: " + imageId);
+                outputImg.source = "image://imageprovider/" + imageId;
+            }
+        }
+        // Function to display text on weight prediction
+        function onWeightPredicted(weight) {
+            console.log("Weight predicted from backend: " + weight);
+            weightPrediction.text = "Predicted Weight: " + weight + " lbs";
+            weightPrediction.visible = true;
+        }
+        // On state change, show the current state At the top center
+        // Above the rectangle
+        function onStateChanged(state) {
+            console.log("State changed from backend: " + state.toString());
+            stateText.text = "State: " + state.toString();
+            stateText.visible = true;
+
+            if (state == "DONE") {
+                buttonTimer.stop();
+                nextButton.enabled = false;
+
+            }
+        }
+        // Override weight prediction text with difference in weight text
+        function onWeightComparison(weightDifference) {
+            console.log("Weight difference from backend: " + weightDifference);
+            weightPrediction.text = "Weight Difference: " + weightDifference + " lbs";
+            weightPrediction.visible = true;
+        }
+
+    }
+    Timer {
+        id: buttonTimer
+        interval: 1000
+        repeat: false
+        onTriggered: {
+            nextButton.enabled = true
         }
     }
 }

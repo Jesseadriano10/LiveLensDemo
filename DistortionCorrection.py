@@ -61,6 +61,8 @@ class DistortionCorrection:
         - cropped_img: the remapped image with a cropped edge
     """
     def distortion_correction(self, img):
+        print(f"Image size: {img.size}", img.shape[:2])
+        print(f"mtx: {self.mtx}, dist: {self.dist}")
         h, w = img.shape[:2]
         new_camera_matrix, roi = cv.getOptimalNewCameraMatrix(self.mtx, self.dist, (w,h), 1, (w,h))
         # undistort

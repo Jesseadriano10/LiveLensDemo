@@ -8,9 +8,9 @@ class SegmentationModel:
     def __init__(self, model_path):
         self.model = YOLO(model_path)
 
-    def preprocess_image(self, image_path):
-        original_image = cv.imread(image_path)
-        converted_image = cv.cvtColor(original_image, cv.COLOR_BGR2RGB)
+
+    def preprocess_image(self, image):
+        converted_image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         resized_image = cv.resize(converted_image, dsize=(640, 480), interpolation=cv.INTER_CUBIC)
         return resized_image
 
@@ -33,6 +33,6 @@ class SegmentationModel:
         return image_copy
 
     def display_image(self, image):
-        plt.imshow(image)
+        plt.imshow(image.astype('uint8'))
         plt.axis('off')
         plt.show()
