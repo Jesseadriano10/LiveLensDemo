@@ -8,6 +8,7 @@ from PySide6.QtGui import QGuiApplication, QImage, QPixmap
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, Qt
 from PySide6.QtQuick import QQuickImageProvider
+from PySide6.QtCore import QByteArray
 
 from typing import List, Dict
 # Model imports
@@ -100,6 +101,7 @@ class Backend(QObject):
         if self.state == State.INITIAL:            
             self.state = State.IMAGE_LOADED
         elif self.state == State.IMAGE_LOADED:
+            print('State.IMAGE_LOADED')
             # Apply distortion correction
             isPrepared = self.prepare_calibration()
             if isPrepared:
@@ -265,7 +267,7 @@ class Backend(QObject):
         
         
         # Ensure path debugging
-        print(f"Attempting to load image from path: {self.input_image_path}")
+        # print(f"Attempting to load image from path: {self.input_image_path}")
         try:
             self.input_image = cv.imread(str(self.input_image_path))
             # Display the self.input_image metadata
@@ -274,7 +276,7 @@ class Backend(QObject):
                 print(f"Failed to load image at {self.input_image_path}")
             else:
                 # Emit the signal with a correct path or indication of success
-                print(f"Attempting to emit signal with path: {self.input_image_path}")
+                # print(f"Attempting to emit signal with path: {self.input_image_path}")
                 self.imageLoaded.emit(str(self.input_image_path))
                 self.imageProcessed.emit("dummy")
                 print(f"Image loaded and sent successfully from {self.input_image_path}")

@@ -11,7 +11,6 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
-
 ApplicationWindow {
     visible: true
     width: 1920
@@ -186,6 +185,7 @@ ApplicationWindow {
             visible: outputImg.source == "" // Hide the text if an image is set
         }
     }
+    
     Button {
         id: nextButton
         text: "Next"
