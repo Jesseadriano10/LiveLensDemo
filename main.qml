@@ -104,6 +104,9 @@ ApplicationWindow {
         font.pointSize: 24
 
         onClicked: {
+            if (backend.state != "INITIAL") {
+                backend.restart_backend()
+            }
             fileDialog.open()
         }
     }
@@ -119,8 +122,6 @@ ApplicationWindow {
             console.log("Calling backend to process image")
             backend.load_image(localPath) // Move to next state
             backend.next_step() // move from INITIAL to IMAGE_LOADED
-            // Disable the button to prevent multiple calls
-            selectImageButton.enabled = false
         }
     }
 
@@ -223,7 +224,7 @@ ApplicationWindow {
             loops: Animation.Infinite
             from: 0.0
             to: 1.0
-            duration: 2000
+            duration: 5000
         }
     }
     // State text to only be displayed after state change
@@ -241,15 +242,14 @@ ApplicationWindow {
             loops: Animation.Infinite
             from: 0.0
             to: 1.0
-            duration: 2000 // Increase the duration to make the fade slower
+            duration: 5000 // Increase the duration to make the fade slower
         }
     }
 
     Connections {
         target: backend
-        function onImageLoaded(imagePath) {
-            console.log("Image loaded from backend: " + imagePath);
-            inputImg.source = imagePath.startsWith("file:///") ? imagePath : "file:///" + imagePath;
+        function onImageLoaded(imageId) {
+            inputImg.source = "image://imageprovider/" + imageId;
         }
         // This function is called when the backend has processed the image
         // and stored it in a map within backend
@@ -268,6 +268,15 @@ ApplicationWindow {
         // On state change, show the current state At the top center
         // Above the rectangle
         function onStateChanged(state) {
+            // If the state is initial, reset UI 
+            if (state == "INITIAL") {
+                inputImg.source = "";
+                outputImg.source = "";
+                weightPrediction.visible = false;
+                stateText.visible = false;
+                selectImageButton.enabled = true;
+                nextButton.enabled = true;
+            }
             console.log("State changed from backend: " + state.toString());
             stateText.text = "State: " + state.toString();
             stateText.visible = true;

@@ -4,11 +4,11 @@ import sys
 from pathlib import Path
 
 # Import the required libraries for QT and PySide6
-from PySide6.QtGui import QGuiApplication, QImage, QPixmap
+from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, Qt
 from PySide6.QtQuick import QQuickImageProvider
-from PySide6.QtCore import QByteArray
+
 
 from typing import List, Dict
 # Model imports
@@ -114,6 +114,8 @@ class Backend(QObject):
                 print("Failed to prepare calibration")
             self.state = State.DISTORTION_CORRECTION_ONE
         elif self.state == State.DISTORTION_CORRECTION_ONE:
+            # Make RGB
+            self.processed_image = cv.cvtColor(self.processed_image, cv.COLOR_BGR2RGB)
             # Display processed image
             qImg = self.convert_npy2qimg(self.processed_image)
             # Add the image to the provider
@@ -125,6 +127,7 @@ class Backend(QObject):
             # Move to Distortion Correction Two
             self.state = State.DISTORTION_CORRECTION_TWO
         elif self.state == State.DISTORTION_CORRECTION_TWO:
+            self.cropped_image = cv.cvtColor(self.cropped_image, cv.COLOR_BGR2RGB)
             # Same as above but show cropped image
             qImg = self.convert_npy2qimg(self.cropped_image)
             # Add the image to the provider
@@ -228,14 +231,27 @@ class Backend(QObject):
             self.state = State.INITIAL
         # Emit the signal with the new state name
         self.stateChanged.emit(self.state.name)
+        
+    @Slot()
+    def restart_backend(self):
+        self.input_image = None
+        self.processed_image = None
+        self.cropped_image = None
+        self.results = None
+        self.weight_predicted = None
+        self.actual_weight = None
+        self.state = State.INITIAL
+        self.stateChanged.emit(self.state.name)
+    
+    
 
         
 
     def prepare_calibration(self) -> bool:
         try:
             # load mtx, dist from csv
-            self.DistortionCorrection.mtx = np.loadtxt('mtx', delimiter=',', dtype=np.float64)
-            self.DistortionCorrection.dist = np.loadtxt('dist', delimiter=',', dtype=np.float64)
+            self.DistortionCorrection.mtx = np.loadtxt('mtx_05zoom', delimiter=',', dtype=np.float64)
+            self.DistortionCorrection.dist = np.loadtxt('dist_05zoom', delimiter=',', dtype=np.float64)
             return True
             # Return boolean to indicate success
         except Exception as e:
@@ -269,17 +285,27 @@ class Backend(QObject):
         # Ensure path debugging
         # print(f"Attempting to load image from path: {self.input_image_path}")
         try:
+            
             self.input_image = cv.imread(str(self.input_image_path))
+            # Ensure image is RGB
+            # If image is not 1900x1425, resize it
+            if self.input_image.shape[0] != 1425 or self.input_image.shape[1] != 1900:
+                self.input_image = cv.resize(self.input_image, (1900, 1425))
+            self.input_image = cv.cvtColor(self.input_image, cv.COLOR_BGR2RGB)
             # Display the self.input_image metadata
-            print(f"Image shape: {self.input_image.shape}")    
+            print(f"Image shape: {self.input_image.shape}")  
+              
             if self.input_image is None:
                 print(f"Failed to load image at {self.input_image_path}")
             else:
-                # Emit the signal with a correct path or indication of success
-                # print(f"Attempting to emit signal with path: {self.input_image_path}")
-                self.imageLoaded.emit(str(self.input_image_path))
+                # Add the image to the provider
+                qImg = self.convert_npy2qimg(self.input_image)
+                image_provider.addImage("input_img", qImg)
+                # print image metadata from the map
+                print(f"Image metadata: {image_provider.myImageMap['input_img'].size()}")
+                # Emit the signal to indicate that the image is ready
+                self.imageLoaded.emit("input_img")
                 self.imageProcessed.emit("dummy")
-                print(f"Image loaded and sent successfully from {self.input_image_path}")
         except Exception as e:
             print(f"Error loading image: {e}")
 
