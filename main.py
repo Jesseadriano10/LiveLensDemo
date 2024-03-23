@@ -36,6 +36,7 @@ class State(Enum):
     DISTORTION_CORRECTION_ONE = auto() # Tentatively
     DISTORTION_CORRECTION_TWO = auto()
     SEGMENTATION_PERFORMED = auto()
+    BINARY_MASK_SHOWN = auto()
     BOUNDING_BOX_SHOWN = auto()
     FILTERED_IMAGE_SHOWN = auto()
     PREDICTION_MADE = auto()
@@ -152,8 +153,9 @@ class Backend(QObject):
             # Make a dir within runs/segment called filtered_image
             os.makedirs('runs/segment/filtered_image', exist_ok=True)
             # Display results
-            print("Segmentation completed.")
-            # Get the binary mask
+            print("Segmentation completed.")        
+            self.state = State.BINARY_MASK_SHOWN
+        elif self.state == State.BINARY_MASK_SHOWN:
             binary_mask = self.SegmentationModel.get_binary_mask(self.results)
             # Plot the binary mask
             plt.imshow(binary_mask)

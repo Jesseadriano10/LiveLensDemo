@@ -218,14 +218,9 @@ ApplicationWindow {
         anchors.topMargin: 20
         color: "white"
         visible: false
-        // Idle animation for text
-        NumberAnimation on opacity {
-            running: true
-            loops: Animation.Infinite
-            from: 0.0
-            to: 1.0
-            duration: 5000
-        }
+        font.styleName: "Regular"
+        font.family: "Verdana"
+
     }
     // State text to only be displayed after state change
     Text {
@@ -236,14 +231,9 @@ ApplicationWindow {
         anchors.topMargin: 20
         color: "white"
         visible: false
-        // Idle animation for text
-        NumberAnimation on opacity {
-            running: true
-            loops: Animation.Infinite
-            from: 0.0
-            to: 1.0
-            duration: 5000 // Increase the duration to make the fade slower
-        }
+        font.styleName: "Regular"
+        font.family: "Verdana"
+
     }
 
     Connections {
@@ -278,7 +268,7 @@ ApplicationWindow {
                 nextButton.enabled = true;
             }
             console.log("State changed from backend: " + state.toString());
-            stateText.text = "State: " + state.toString();
+            stateText.text = "Next Step: " + state.toString();
             stateText.visible = true;
 
             if (state == "DONE") {
