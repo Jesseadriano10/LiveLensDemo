@@ -20,10 +20,6 @@ import cv2 as cv
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
-
-
-
 import matplotlib.pyplot as plt
 from SegmentationModel import SegmentationModel
 from DistortionCorrection import DistortionCorrection
@@ -33,13 +29,13 @@ from PySide6.QtCore import Qt
 class State(Enum):
     INITIAL = auto()
     IMAGE_LOADED = auto()
-    DISTORTION_CORRECTION_ONE = auto() # Tentatively
-    DISTORTION_CORRECTION_TWO = auto()
-    SEGMENTATION_PERFORMED = auto()
-    BINARY_MASK_SHOWN = auto()
-    BOUNDING_BOX_SHOWN = auto()
-    FILTERED_IMAGE_SHOWN = auto()
-    PREDICTION_MADE = auto()
+    DISTORTION_CORRECTION_1 = auto() # Tentatively
+    DISTORTION_CORRECTION_2 = auto()
+    DETECTION_1 = auto()
+    DETECTION_2 = auto()
+    SEGMENTATION_1 = auto()
+    SEGMENTATION_2 = auto()
+    MEASURE_WEIGHT = auto()
     COMPARISON_DISPLAYED = auto()
     DONE = auto()
 
@@ -113,8 +109,8 @@ class Backend(QObject):
                 print("Distortion correction applied")
             else:
                 print("Failed to prepare calibration")
-            self.state = State.DISTORTION_CORRECTION_ONE
-        elif self.state == State.DISTORTION_CORRECTION_ONE:
+            self.state = State.DISTORTION_CORRECTION_1
+        elif self.state == State.DISTORTION_CORRECTION_1:
             # Make RGB
             self.processed_image = cv.cvtColor(self.processed_image, cv.COLOR_BGR2RGB)
             # Display processed image
@@ -126,8 +122,8 @@ class Backend(QObject):
             # Emit the signal to indicate that the processed image is ready
             self.imageProcessed.emit("corrected_img")
             # Move to Distortion Correction Two
-            self.state = State.DISTORTION_CORRECTION_TWO
-        elif self.state == State.DISTORTION_CORRECTION_TWO:
+            self.state = State.DISTORTION_CORRECTION_2
+        elif self.state == State.DISTORTION_CORRECTION_2:
             self.cropped_image = cv.cvtColor(self.cropped_image, cv.COLOR_BGR2RGB)
             # Same as above but show cropped image
             qImg = self.convert_npy2qimg(self.cropped_image)
@@ -137,8 +133,8 @@ class Backend(QObject):
             print(f"Image metadata: {image_provider.myImageMap['cropped_img'].size()}")
             # Emit the signal to indicate that the processed image is ready
             self.imageProcessed.emit("cropped_img")
-            self.state = State.SEGMENTATION_PERFORMED
-        elif self.state == State.SEGMENTATION_PERFORMED:
+            self.state = State.DETECTION_1
+        elif self.state == State.DETECTION_1:
             # Preprocess the image
             print("Preprocessing image...")
             self.processed_image = self.SegmentationModel.preprocess_image(self.processed_image)
@@ -154,20 +150,8 @@ class Backend(QObject):
             os.makedirs('runs/segment/filtered_image', exist_ok=True)
             # Display results
             print("Segmentation completed.")        
-            self.state = State.BINARY_MASK_SHOWN
-        elif self.state == State.BINARY_MASK_SHOWN:
-            binary_mask = self.SegmentationModel.get_binary_mask(self.results)
-            # Plot the binary mask
-            plt.imshow(binary_mask)
-            plt.axis('off')
-            plt.savefig('runs/segment/binary_mask/binary_mask.png')
-            # Save the binary mask to the image provider
-            qImg = QImage('runs/segment/binary_mask/binary_mask.png')
-            image_provider.addImage("binary_mask", qImg) 
-            # Emit the signal to indicate that the processed image is ready
-            self.imageProcessed.emit("binary_mask")
-            self.state = State.BOUNDING_BOX_SHOWN
-        elif self.state == State.BOUNDING_BOX_SHOWN:
+            self.state = State.DETECTION_2
+        elif self.state == State.DETECTION_2:
             # Get the bounding box
             bounding_box_image = self.SegmentationModel.get_bounding(self.processed_image, self.results)
             # Convert color space from BGR to RGB
@@ -181,8 +165,20 @@ class Backend(QObject):
             image_provider.addImage("bounding_box", qImg)
             # Emit the signal to indicate that the processed image is ready
             self.imageProcessed.emit("bounding_box")
-            self.state = State.FILTERED_IMAGE_SHOWN
-        elif self.state == State.FILTERED_IMAGE_SHOWN:
+            self.state = State.SEGMENTATION_1
+        elif self.state == State.SEGMENTATION_1:
+            binary_mask = self.SegmentationModel.get_binary_mask(self.results)
+            # Plot the binary mask
+            plt.imshow(binary_mask)
+            plt.axis('off')
+            plt.savefig('runs/segment/binary_mask/binary_mask.png')
+            # Save the binary mask to the image provider
+            qImg = QImage('runs/segment/binary_mask/binary_mask.png')
+            image_provider.addImage("binary_mask", qImg) 
+            # Emit the signal to indicate that the processed image is ready
+            self.imageProcessed.emit("binary_mask")
+            self.state = State.SEGMENTATION_2
+        elif self.state == State.SEGMENTATION_2:
             # Get the filtered image
             filtered_image = self.SegmentationModel.get_filtered(self.processed_image, self.results)
             filtered_image_rgb = cv.cvtColor(filtered_image, cv.COLOR_BGR2RGB)
@@ -195,8 +191,8 @@ class Backend(QObject):
             image_provider.addImage("filtered_image", qImg)
             # Emit the signal to indicate that the processed image is ready
             self.imageProcessed.emit("filtered_image")
-            self.state = State.PREDICTION_MADE
-        elif self.state == State.PREDICTION_MADE:
+            self.state = State.MEASURE_WEIGHT
+        elif self.state == State.MEASURE_WEIGHT:
             print("Making a prediction...")
             print("Actual weight: ", self.actual_weight, "kg") # This is the actual weight
             # Convert actual weight to lbs
